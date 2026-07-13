@@ -453,47 +453,15 @@ class LiveSession {
       markedPlayer,
       fabled
     } = data;
-    // for full gamestate with players, reset local players to clear stale data
+    // for full gamestate with players, merge server data into local players
+    // 不清空本地角色/提醒等数据，仅同步座位/死亡/旅行者角色
     if (!isLightweight && gamestate.length) {
-      const currentPlayers = this._store.state.players.players;
-      // 保存已有的 bluffs（恶魔的伪装）和角色，防止被 gamestate 重置清空
-      // （说书人的 gamestate 只发送旅行者 roleId，普通角色需要从本地恢复）
-      const savedBluffs = currentPlayers.map(p =>
-        p.bluffs && p.bluffs.length ? p.bluffs : null
-      );
-      // 优先使用 connect() 时保存的角色（因为 connect 会清空玩家列表），
-      // 其次使用当前玩家的角色
-      const savedRoles = (this._savedPlayerRoles && this._savedPlayerRoles.length)
-        ? this._savedPlayerRoles
-        : currentPlayers.map(p =>
-            p.role && p.role.id ? p.role : null
-          );
       this._savedPlayerRoles = null;
-      this._store.commit(
-        "players/set",
-        gamestate.map(gs => ({
-          name: gs.name,
-          id: "",
-          isDead: false,
-          isVoteless: false,
-          pronouns: gs.pronouns || "",
-          role: {},
-          reminders: [],
-          bluffs: []
-        }))
-      );
-      // 恢复非空的 bluffs
-      const newPlayers = this._store.state.players.players;
-      savedBluffs.forEach((bluffs, i) => {
-        if (bluffs && newPlayers[i]) {
-          newPlayers[i].bluffs = bluffs;
-        }
-      });
-      // 恢复本地已有的角色（gamestate 未提供 roleId 的座位）
-      savedRoles.forEach((role, i) => {
-        if (role && newPlayers[i] && !newPlayers[i].role.id) {
-          newPlayers[i].role = role;
-        }
+      this._store.commit("players/syncGamestate", {
+        gamestate,
+        roles: this._store.state.roles,
+        rolesJSONbyId: this._store.getters.rolesJSONbyId,
+        claimedSeat: this._store.state.session.claimedSeat
       });
     }
     const players = this._store.state.players.players;
@@ -508,47 +476,17 @@ class LiveSession {
           this._store.commit("players/remove", x - 1);
         }
       }
-    }
-    // update status for each player
-    gamestate.forEach((state, x) => {
-      const player = players[x];
-      if (!player) return;
-      const { roleId } = state;
-      // update relevant properties
-      ["name", "id", "isDead", "isVoteless", "pronouns"].forEach(property => {
-        // 防止竞态：说书人发回的 getGamestate 响应可能比 claim 广播早到，
-        // 此时响应里 id 是空的，会覆盖刚坐下的座位。跳过对自己已占座位的 id 更新。
-        if (
-          property === "id" &&
-          x === this._store.state.session.claimedSeat
-        ) {
-          return;
+      // lightweight: sync id/death from server for existing players
+      gamestate.forEach((gs, x) => {
+        const player = players[x];
+        if (!player) return;
+        if (x !== this._store.state.session.claimedSeat) {
+          player.id = gs.id || "";
         }
-        const value = state[property];
-        if (player[property] !== value) {
-          this._store.commit("players/update", { player, property, value });
-        }
+        player.isDead = !!gs.isDead;
+        player.isVoteless = !!gs.isVoteless;
       });
-      // roles are special, because of travelers
-      if (roleId && player.role.id !== roleId) {
-        const role =
-          this._store.state.roles.get(roleId) ||
-          this._store.getters.rolesJSONbyId.get(roleId);
-        if (role) {
-          this._store.commit("players/update", {
-            player,
-            property: "role",
-            value: role
-          });
-        }
-      } else if (!roleId && player.role.team === "traveler") {
-        this._store.commit("players/update", {
-          player,
-          property: "role",
-          value: {}
-        });
-      }
-    });
+    }
     if (!isLightweight) {
       this._store.commit("toggleNight", !!isNight);
       this._store.commit("session/setVoteHistoryAllowed", isVoteHistoryAllowed);
@@ -1135,24 +1073,26 @@ export default store => {
         session.setMarked(payload);
         break;
       case "players/swap":
-        session.swapPlayer(payload);
+        if (!state.session.isSpectator) session.swapPlayer(payload);
         break;
       case "players/move":
-        session.movePlayer(payload);
+        if (!state.session.isSpectator) session.movePlayer(payload);
         break;
       case "players/remove":
-        session.removePlayer(payload);
+        if (!state.session.isSpectator) session.removePlayer(payload);
         break;
       case "players/set":
       case "players/clear":
       case "players/add":
-        session.sendGamestate("", true);
+        if (!state.session.isSpectator) session.sendGamestate("", true);
         break;
       case "players/update":
-        if (payload.property === "pronouns") {
-          session.sendPlayerPronouns(payload);
-        } else {
-          session.sendPlayer(payload);
+        if (!state.session.isSpectator) {
+          if (payload.property === "pronouns") {
+            session.sendPlayerPronouns(payload);
+          } else {
+            session.sendPlayer(payload);
+          }
         }
         break;
     }

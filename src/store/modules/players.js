@@ -117,6 +117,39 @@ const mutations = {
       state.players[index][property] = value;
     }
   },
+  /**
+   * 从服务器 gamestate 合并数据到本地玩家。
+   * 保留本地角色（非旅行者）、笔记、提醒等，仅同步座位/死亡/旅行者角色。
+   */
+  syncGamestate(state, { gamestate, roles, rolesJSONbyId, claimedSeat }) {
+    // 调整玩家数量
+    while (state.players.length < gamestate.length) {
+      state.players.push({ ...NEWPLAYER });
+    }
+    if (state.players.length > gamestate.length) {
+      state.players.length = gamestate.length;
+    }
+    gamestate.forEach((gs, i) => {
+      const player = state.players[i];
+      if (!player) return;
+      player.name = gs.name;
+      // 座位信息：跳过自己已占的座位（防止竞态）
+      if (i !== claimedSeat) {
+        player.id = gs.id || "";
+      }
+      player.isDead = !!gs.isDead;
+      player.isVoteless = !!gs.isVoteless;
+      player.pronouns = gs.pronouns || "";
+      // 旅行者角色：以服务器为准；非旅行者：保留本地设置
+      if (gs.roleId) {
+        const role = roles.get(gs.roleId) || rolesJSONbyId.get(gs.roleId);
+        if (role) player.role = role;
+      } else if (player.role && player.role.team === "traveler") {
+        player.role = {};
+      }
+      // reminders 不从 gamestate 覆盖，保留本地数据
+    });
+  },
   add(state, name) {
     state.players.push({
       ...NEWPLAYER,
