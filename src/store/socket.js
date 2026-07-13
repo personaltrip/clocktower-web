@@ -82,7 +82,7 @@ class LiveSession {
         // 连接中断，不清空缓存，尝试重连
         this._store.commit("session/setReconnecting", true);
         this._reconnectTimer = setTimeout(
-          () => this.connect(channel),
+          () => this.connect(channel, true),
           3 * 1000
         );
       } else if (!this._store.state.session.sessionId) {
@@ -337,7 +337,7 @@ class LiveSession {
     // socket 不存在或不在 OPEN 状态 → 连接已死，立即重连
     if (!this._socket || this._socket.readyState !== WebSocket.OPEN) {
       this._socket = null;
-      this.connect(this._store.state.session.sessionId);
+      this.connect(this._store.state.session.sessionId, true);
     } else {
       // socket 显示 OPEN，发一次 ping 验证连接是否真正存活
       try {
@@ -345,7 +345,7 @@ class LiveSession {
       } catch (e) {
         // 发送失败说明连接已死
         this._socket = null;
-        this.connect(this._store.state.session.sessionId);
+        this.connect(this._store.state.session.sessionId, true);
       }
     }
   }
