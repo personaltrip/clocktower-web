@@ -69,13 +69,8 @@ class LiveSession {
     };
     socket.onerror = () => {
       if (this._socket !== socket) return;
-      if (this._isSpectator) {
-        // 房间已销毁，静默清空回到初始界面
-        this._store.commit("session/setSessionId", "");
-        this._store.commit("players/set", []);
-        this._store.commit("players/setBluff");
-        this._store.commit("players/setFabled");
-      }
+      // 连接失败不清空缓存，保留本地数据供用户查看
+      this._store.commit("session/setConnectError", "连接失败");
     };
     socket.onclose = err => {
       // 已有新连接（重连场景），旧 socket 的 close 事件直接忽略
@@ -84,21 +79,12 @@ class LiveSession {
       clearInterval(this._pingTimer);
       this._pingTimer = null;
       if (err.code !== 1000) {
-        // connection interrupted, reconnect after 3 seconds
-        // 但如果是首次连接就失败（没有收到过消息），不要重连
-        if (!this._gamestateReceived && this._isSpectator) {
-          // 房间已销毁，静默清空回到初始界面
-          this._store.commit("session/setSessionId", "");
-          this._store.commit("players/set", []);
-          this._store.commit("players/setBluff");
-          this._store.commit("players/setFabled");
-        } else {
-          this._store.commit("session/setReconnecting", true);
-          this._reconnectTimer = setTimeout(
-            () => this.connect(channel),
-            3 * 1000
-          );
-        }
+        // 连接中断，不清空缓存，尝试重连
+        this._store.commit("session/setReconnecting", true);
+        this._reconnectTimer = setTimeout(
+          () => this.connect(channel),
+          3 * 1000
+        );
       } else if (!this._store.state.session.sessionId) {
         // 只有用户主动退出时（sessionId 已被 subscriber 清空）才处理 1000
         if (err.reason) alert(err.reason);
