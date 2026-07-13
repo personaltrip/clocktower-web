@@ -1,0 +1,212 @@
+/*** Media queries ***/
+// Large devices (desktops, less than 1200px)
+@media screen and (max-width: 1199.98px) {
+  html,
+  body {
+    font-size: 1.1em;
+  }
+  .night-order em {
+    width: 22px;
+    height: 22px;
+  }
+  .fabled .night-order.first span {
+    left: 22px;
+  }
+}
+
+// Medium devices (tablets, less than 992px)
+@media screen and (max-width: 991.98px) {
+  html,
+  body {
+    font-size: 1em;
+  }
+  #controls svg {
+    font-size: 20px;
+  }
+  .night-order em {
+    width: 15px;
+    height: 15px;
+  }
+  .fabled .night-order.first span {
+    left: 15px;
+  }
+  #townsquare {
+    padding: 10px;
+  }
+}
+
+// Small devices (landscape phones, less than 768px)
+@media screen and (max-width: 767.98px) {
+  html,
+  body {
+    font-size: 0.9em;
+  }
+  .player > .name {
+    top: 0;
+  }
+  .player > .menu {
+    bottom: 0;
+    &:before {
+      bottom: 0;
+    }
+  }
+}
+
+// Portrait aspect ratio: circle diameter constrained by viewport width
+// 同时适配角色弹窗为全屏布局（与参考网站一致）
+@media (max-aspect-ratio: 1/1) {
+  .circle > li {
+    top: calc(50% - 48vw + 1vw) !important;
+    height: 48vw !important;
+  }
+
+  // 角色弹窗全屏
+  .characters .modal,
+  .roles .modal,
+  .night-reference .modal,
+  .vote-history .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  // 角色弹窗 token 尺寸
+  .modal-backdrop .modal ul.tokens li {
+    width: 12vw;
+  }
+
+  // 角色数量标记
+  .roles .modal ul.tokens li.count {
+    width: 8vw !important;
+  }
+}
+
+// Small phones (less than 576px) — 与参考网站一致
+@media screen and (max-width: 575.98px) {
+  html,
+  body {
+    font-size: 0.8em;
+  }
+
+  // 玩家名字：固定 9px 对齐参考网站
+  .player > .name {
+    font-size: 9px;
+    line-height: 11px;
+  }
+
+  // 伪装/传奇面板 token
+  #townsquare > .bluffs ul li,
+  #townsquare > .fabled ul li {
+    width: min(14vw, 14vh);
+    height: min(14vw, 14vh);
+  }
+  #townsquare > .bluffs,
+  #townsquare > .fabled {
+    border-width: 1px;
+    h3 {
+      font-size: 0.75em;
+      margin: 3px 0.5vh 0;
+    }
+  }
+
+  // 玩家右键菜单
+  .player > .menu {
+    font-size: 0.85em;
+  }
+
+  // 中央剧本 logo
+  .edition-center {
+    width: 40%;
+  }
+  .edition-logo {
+    width: 150px;
+    height: 130px;
+  }
+  .edition-name {
+    font-size: 85%;
+  }
+
+  // 左上角统计下移
+  .stats {
+    top: 48px;
+  }
+
+  // 右上角控制区域
+  #controls {
+    padding-right: 35px;
+    > span {
+      margin-left: 6px;
+    }
+  }
+
+  // 提醒 token
+  .circle .reminder {
+    width: 40%;
+    margin-left: -20%;
+  }
+
+  // 夜晚顺序圆圈
+  .night-order em {
+    width: 16px;
+    height: 16px;
+    font-size: 8px;
+  }
+
+  // 投票界面
+  #vote {
+    width: 40%;
+  }
+  .countdown span {
+    font-size: 5em;
+  }
+
+  // 弹窗
+  .modal {
+    max-width: 95%;
+  }
+
+  // 坐下提示
+  .player > .sit-down {
+    font-size: 100%;
+  }
+}
+
+// Very small phones (less than 360px)
+@media screen and (max-width: 359.98px) {
+  html,
+  body {
+    font-size: 0.72em;
+  }
+
+  #townsquare > .bluffs ul li,
+  #townsquare > .fabled ul li {
+    width: min(12vw, 12vh);
+    height: min(12vw, 12vh);
+  }
+
+  .edition-logo {
+    width: 120px;
+    height: 100px;
+  }
+}
+
+// odd aspect ratio
+@media (max-aspect-ratio: 11/7) {
+  .bluffs,
+  .fabled {
+    ul {
+      flex-direction: column;
+    }
+  }
+}
+
+// touch devices
+@media (hover: none) {
+  .circle li .reminder.add {
+    opacity: 1;
+    top: 0;
+    width: 35%;
+    padding-bottom: 35%;
+  }
+}
