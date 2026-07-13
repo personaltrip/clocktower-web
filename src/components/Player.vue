@@ -21,7 +21,7 @@
 
       <div
         class="night-order first"
-        v-if="nightOrder.get(player).first && grimoire.isNightOrder && (!session.isSpectator || player.id === session.playerId)"
+        v-if="nightOrder.get(player).first && grimoire.isNightOrder"
       >
         <em>{{ nightOrder.get(player).first }}</em>
         <span v-if="player.role.firstNightReminder">{{
@@ -30,7 +30,7 @@
       </div>
       <div
         class="night-order other"
-        v-if="nightOrder.get(player).other && grimoire.isNightOrder && (!session.isSpectator || player.id === session.playerId)"
+        v-if="nightOrder.get(player).other && grimoire.isNightOrder"
       >
         <em>{{ nightOrder.get(player).other }}</em>
         <span v-if="player.role.otherNightReminder">{{
