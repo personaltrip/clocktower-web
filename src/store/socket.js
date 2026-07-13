@@ -754,18 +754,7 @@ class LiveSession {
    */
   claimSeat(seat) {
     if (!this._isSpectator) return;
-    const players = this._store.state.players.players;
-    if (players.length > seat && (seat < 0 || !players[seat].id)) {
-      this._send("claim", [seat, this._store.state.session.playerId]);
-    } else if (seat >= 0) {
-      // players 尚未就绪（gamestate 未到达），1 秒后重试
-      setTimeout(() => {
-        const p = this._store.state.players.players;
-        if (p.length > seat && !p[seat].id) {
-          this._send("claim", [seat, this._store.state.session.playerId]);
-        }
-      }, 1000);
-    }
+    this._send("claim", [seat, this._store.state.session.playerId]);
   }
 
   /**
