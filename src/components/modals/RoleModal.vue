@@ -92,7 +92,6 @@ export default {
           role
         });
       } else {
-        if (this.session.isSpectator && role.team === "traveler") return;
         // assign to player
         const player = this.$store.state.players.players[this.playerIndex];
         this.$store.commit("players/update", {

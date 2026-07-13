@@ -40,7 +40,6 @@
 
       <Token
         :role="player.role"
-        :hide-role="session.isSpectator && player.id !== session.playerId"
         @set-role="$emit('trigger', ['openRoleModal'])"
         style="pointer-events: none !important;"
       />
@@ -167,7 +166,7 @@
       </transition>
     </div>
 
-    <template v-if="player.reminders && !session.isSpectator">
+    <template v-if="player.reminders">
       <div
         class="reminder"
         :key="reminder.role + ' ' + reminder.name"
@@ -192,7 +191,6 @@
     </template>
     <div
       class="reminder add"
-      v-if="!session.isSpectator"
       @click="$emit('trigger', ['openReminderModal'])"
     >
       <span class="icon"></span>
@@ -963,5 +961,8 @@ li.move:not(.from) .player .overlay svg.move {
 #townsquare.public .reminder {
   opacity: 0;
   pointer-events: none;
+}
+#townsquare.public .reminder.add {
+  pointer-events: auto;
 }
 </style>

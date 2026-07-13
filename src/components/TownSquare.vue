@@ -163,9 +163,6 @@ export default {
       this.$store.commit("toggleModal", "reminder");
     },
     openRoleModal(playerIndex) {
-      const player = this.players[playerIndex];
-      if (this.session.isSpectator && player && player.role.team === "traveler")
-        return;
       this.selectedPlayer = playerIndex;
       this.$store.commit("toggleModal", "role");
     },
