@@ -189,6 +189,9 @@ class LiveSession {
     } catch (err) {
       console.log("unsupported socket message", data);
     }
+    if (command === "claim" || command === "player") {
+      console.log("[WS] received:", command, JSON.stringify(params));
+    }
     switch (command) {
       case "getGamestate":
         this.sendGamestate(params);
@@ -567,7 +570,8 @@ class LiveSession {
    * @param value
    */
   sendPlayer({ player, property, value }) {
-    if (this._isSpectator || property === "reminders") return;
+    console.log("[WS] sendPlayer called: property=", property, "isSpectator=", this._isSpectator);
+    if (this._isSpectator || property === "reminders") { console.log("[WS] sendPlayer: skipped (spectator or reminders)"); return; }
     const index = this._store.state.players.players.indexOf(player);
     if (property === "role") {
       if (value.team && value.team === "traveler") {
@@ -596,8 +600,9 @@ class LiveSession {
    * @private
    */
   _updatePlayer({ index, property, value }) {
+    console.log("[WS] _updatePlayer: index=", index, "property=", property, "value=", value, "players.length=", this._store.state.players.players.length);
     const player = this._store.state.players.players[index];
-    if (!player) return;
+    if (!player) { console.log("[WS] _updatePlayer: player not found at index", index); return; }
     if (property === "role") {
       // 角色更新对观众和恶魔都生效（恶魔需要接收自己的伪装）
       let roleId;
@@ -1066,6 +1071,7 @@ export default store => {
         if (!state.session.isSpectator) session.sendGamestate("", true);
         break;
       case "players/update":
+        console.log("[WS] subscriber players/update: property=", payload.property, "isSpectator=", state.session.isSpectator);
         if (!state.session.isSpectator) {
           if (payload.property === "pronouns") {
             session.sendPlayerPronouns(payload);
