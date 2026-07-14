@@ -91,6 +91,9 @@ export default {
   methods: {
     keyup({ key, ctrlKey, metaKey }) {
       if (ctrlKey || metaKey) return;
+      // 输入框聚焦时屏蔽快捷键
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT" || activeEl.isContentEditable)) return;
       switch (key.toLocaleLowerCase()) {
         case "g":
           this.$store.commit("toggleGrimoire");

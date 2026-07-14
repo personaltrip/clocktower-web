@@ -2,6 +2,7 @@
   <Modal
     class="script-browser"
     v-if="modals.scriptBrowser"
+    :maximized="true"
     @close="toggleModal('scriptBrowser')"
   >
     <div class="browser-header">

@@ -31,9 +31,15 @@
 
 <script>
 export default {
+  props: {
+    maximized: {
+      type: Boolean,
+      default: false
+    }
+  },
   data: function() {
     return {
-      isMaximized: false
+      isMaximized: this.maximized
     };
   },
   methods: {
