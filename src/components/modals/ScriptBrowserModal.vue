@@ -13,8 +13,9 @@
           v-model="searchQuery"
           placeholder="搜索剧本名称、作者..."
           ref="searchInput"
+          @input="currentPage = 1"
         />
-        <span v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
+        <span v-if="searchQuery" class="clear-btn" @click="searchQuery = ''; currentPage = 1">
           <font-awesome-icon icon="times" />
         </span>
       </div>
@@ -22,14 +23,14 @@
         <span
           class="tab"
           :class="{ active: selectedCategory === '' }"
-          @click="selectedCategory = ''"
+          @click="selectedCategory = ''; currentPage = 1"
         >全部</span>
         <span
           v-for="cat in categories"
           :key="cat"
           class="tab"
           :class="{ active: selectedCategory === cat }"
-          @click="selectedCategory = cat"
+          @click="selectedCategory = cat; currentPage = 1"
         >{{ cat }}</span>
       </div>
     </div>
@@ -38,44 +39,37 @@
       <div class="results-info">
         共 {{ filteredScripts.length }} 个剧本
       </div>
-      <div class="script-grid">
+      <div class="script-list">
         <div
-          v-for="script in filteredScripts"
+          v-for="script in pagedScripts"
           :key="script.file"
-          class="script-card"
+          class="script-item"
           @click="loadScript(script)"
         >
-          <div class="card-logo" v-if="script.logo">
-            <img :src="script.logo" :alt="script.name" @error="e => e.target.style.display='none'" />
+          <div class="item-info">
+            <span class="item-name">{{ script.name }}</span>
+            <span class="item-author" v-if="script.author">{{ script.author }}</span>
           </div>
-          <div class="card-logo placeholder" v-else>
-            <font-awesome-icon icon="book-open" />
-          </div>
-          <div class="card-info">
-            <div class="card-name">{{ script.name }}</div>
-            <div class="card-author" v-if="script.author">{{ script.author }}</div>
-            <div class="card-category">{{ script.category }}</div>
-            <div class="card-stats">
-              <span class="team-count" v-if="script.teams.townsfolk" title="镇民">
-                <span class="dot townsfolk"></span>{{ script.teams.townsfolk }}
-              </span>
-              <span class="team-count" v-if="script.teams.outsider" title="外来者">
-                <span class="dot outsider"></span>{{ script.teams.outsider }}
-              </span>
-              <span class="team-count" v-if="script.teams.minion" title="爪牙">
-                <span class="dot minion"></span>{{ script.teams.minion }}
-              </span>
-              <span class="team-count" v-if="script.teams.demon" title="恶魔">
-                <span class="dot demon"></span>{{ script.teams.demon }}
-              </span>
-              <span class="team-count" v-if="script.teams.traveler" title="旅行者">
-                <span class="dot traveler"></span>{{ script.teams.traveler }}
-              </span>
-              <span class="total-count">共{{ script.total }}角色</span>
-            </div>
-            <div class="card-desc" v-if="script.description">{{ script.description }}</div>
+          <div class="item-meta">
+            <span class="item-category">{{ script.category }}</span>
+            <span class="item-players">{{ script.players }}人</span>
           </div>
         </div>
+      </div>
+      <div class="pagination" v-if="totalPages > 1">
+        <span class="page-btn" :class="{ disabled: currentPage <= 1 }" @click="goPage(currentPage - 1)">
+          &laquo;
+        </span>
+        <span
+          v-for="p in visiblePages"
+          :key="p"
+          class="page-btn"
+          :class="{ active: p === currentPage, ellipsis: p === '...' }"
+          @click="p !== '...' && goPage(p)"
+        >{{ p }}</span>
+        <span class="page-btn" :class="{ disabled: currentPage >= totalPages }" @click="goPage(currentPage + 1)">
+          &raquo;
+        </span>
       </div>
     </div>
 
@@ -90,6 +84,8 @@
 import { mapMutations, mapState } from "vuex";
 import Modal from "./Modal";
 
+const PAGE_SIZE = 30;
+
 export default {
   components: { Modal },
   data() {
@@ -98,6 +94,7 @@ export default {
       searchQuery: "",
       selectedCategory: "",
       categories: [],
+      currentPage: 1,
       loading: true
     };
   },
@@ -114,11 +111,32 @@ export default {
           s =>
             s.name.toLowerCase().includes(q) ||
             s.author.toLowerCase().includes(q) ||
-            s.description.toLowerCase().includes(q) ||
             s.category.toLowerCase().includes(q)
         );
       }
       return result;
+    },
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredScripts.length / PAGE_SIZE));
+    },
+    pagedScripts() {
+      const start = (this.currentPage - 1) * PAGE_SIZE;
+      return this.filteredScripts.slice(start, start + PAGE_SIZE);
+    },
+    visiblePages() {
+      const total = this.totalPages;
+      const cur = this.currentPage;
+      if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+      }
+      const pages = [1];
+      if (cur > 3) pages.push("...");
+      for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) {
+        pages.push(i);
+      }
+      if (cur < total - 2) pages.push("...");
+      pages.push(total);
+      return pages;
     }
   },
   watch: {
@@ -130,6 +148,11 @@ export default {
         this.$nextTick(() => {
           this.$refs.searchInput && this.$refs.searchInput.focus();
         });
+      }
+    },
+    filteredScripts() {
+      if (this.currentPage > this.totalPages) {
+        this.currentPage = 1;
       }
     }
   },
@@ -146,6 +169,14 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    goPage(p) {
+      if (p < 1 || p > this.totalPages) return;
+      this.currentPage = p;
+      this.$nextTick(() => {
+        const content = this.$el.querySelector(".browser-content");
+        if (content) content.scrollTop = 0;
+      });
     },
     async loadScript(script) {
       this.loading = true;
@@ -192,10 +223,10 @@ export default {
 
 <style scoped lang="scss">
 .browser-header {
-  padding: 10px 0;
+  padding: 8px 0;
   h3 {
     text-align: center;
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     font-family: PiratesBay, sans-serif;
     font-size: 120%;
   }
@@ -208,7 +239,7 @@ export default {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 6px 14px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   svg {
     color: #999;
     margin-right: 8px;
@@ -221,39 +252,31 @@ export default {
     color: #fff;
     font-size: 100%;
     outline: none;
-    &::placeholder {
-      color: #666;
-    }
+    &::placeholder { color: #666; }
   }
   .clear-btn {
     cursor: pointer;
     color: #999;
-    &:hover {
-      color: #fff;
-    }
+    &:hover { color: #fff; }
   }
 }
 
 .category-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  max-height: 60px;
-  overflow-y: auto;
-  padding: 4px 0;
+  gap: 5px;
+  padding: 2px 0;
   .tab {
     display: inline-block;
-    padding: 3px 10px;
+    padding: 3px 9px;
     border-radius: 12px;
-    font-size: 80%;
+    font-size: 75%;
     cursor: pointer;
     background: rgba(255, 255, 255, 0.08);
     color: #ccc;
     white-space: nowrap;
     transition: all 150ms;
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
+    &:hover { background: rgba(255, 255, 255, 0.2); }
     &.active {
       background: rgba(200, 160, 80, 0.5);
       color: #fff;
@@ -270,115 +293,115 @@ export default {
 .results-info {
   text-align: center;
   color: #999;
-  font-size: 80%;
-  padding: 4px 0 8px;
+  font-size: 75%;
+  padding: 4px 0 6px;
 }
 
-.script-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
-  padding-bottom: 10px;
-}
-
-.script-card {
+.script-list {
   display: flex;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  overflow: hidden;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+}
+
+.script-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 200ms;
+  transition: all 150ms;
   &:hover {
     background: rgba(255, 255, 255, 0.12);
     border-color: rgba(200, 160, 80, 0.4);
-    transform: translateY(-1px);
   }
 }
 
-.card-logo {
-  width: 80px;
-  min-height: 80px;
-  flex-shrink: 0;
+.item-info {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  &.placeholder {
-    font-size: 24px;
-    color: #555;
-  }
-}
-
-.card-info {
-  flex: 1;
-  padding: 8px 10px;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
+  flex: 1;
 }
 
-.card-name {
+.item-name {
   font-weight: bold;
-  font-size: 95%;
-  margin-bottom: 2px;
+  font-size: 90%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.card-author {
+.item-author {
   font-size: 75%;
   color: #b0a080;
-  margin-bottom: 2px;
+  flex-shrink: 0;
 }
 
-.card-category {
-  font-size: 70%;
-  color: #888;
-  margin-bottom: 4px;
-}
-
-.card-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 75%;
-  margin-bottom: 4px;
-}
-
-.team-count {
+.item-meta {
   display: flex;
   align-items: center;
-  gap: 2px;
-  .dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    &.townsfolk { background: #3b82f6; }
-    &.outsider { background: #22c55e; }
-    &.minion { background: #f59e0b; }
-    &.demon { background: #ef4444; }
-    &.traveler { background: #a855f7; }
-  }
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 10px;
 }
 
-.total-count {
-  color: #999;
-}
-
-.card-desc {
+.item-category {
   font-size: 70%;
-  color: #999;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  color: #777;
+}
+
+.item-players {
+  font-size: 80%;
+  color: #aaa;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 80%;
+  cursor: pointer;
+  color: #ccc;
+  background: rgba(255, 255, 255, 0.06);
+  transition: all 150ms;
+  user-select: none;
+  &:hover:not(.disabled):not(.ellipsis) {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  &.active {
+    background: rgba(200, 160, 80, 0.5);
+    color: #fff;
+    font-weight: bold;
+  }
+  &.disabled {
+    color: #555;
+    cursor: default;
+  }
+  &.ellipsis {
+    cursor: default;
+    background: none;
+  }
 }
 
 .browser-loading {

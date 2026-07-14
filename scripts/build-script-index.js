@@ -54,14 +54,9 @@ function scanScripts(dir, category = "") {
         results.push({
           name: meta.name || path.basename(entry.name, ".json").replace(/^#/, ""),
           author: meta.author || "",
-          logo: meta.logo || "",
-          description: (meta.description || "")
-            .replace(/<[^>]*>/g, "")
-            .substring(0, 120),
           category: topCategory,
           file: "scripts/" + relPath.replace(/\\/g, "/"),
-          total: roles.length,
-          teams
+          players: roles.filter(r => r.team !== "traveler").length
         });
       } catch (e) {
         // skip invalid files
