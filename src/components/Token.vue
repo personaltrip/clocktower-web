@@ -44,6 +44,12 @@
 import { mapState } from "vuex";
 import { getCachedImage, cacheImage } from "../utils/imageCache";
 
+// 构建时获取所有本地图标文件列表
+const localIcons = require.context("../assets/icons/", false, /\.png$/);
+const localIconSet = new Set(
+  localIcons.keys().map(key => key.replace("./", "").replace(".png", ""))
+);
+
 export default {
   name: "Token",
   props: {
@@ -66,7 +72,16 @@ export default {
         (this.role.remindersGlobal || []).length
       );
     },
+    /**
+     * 检查是否有本地图标
+     */
+    hasLocalIcon() {
+      const iconId = this.role.imageAlt || this.role.id;
+      return localIconSet.has(iconId);
+    },
     useRemoteImage() {
+      // 如果有本地图标，优先使用本地
+      if (this.hasLocalIcon) return false;
       return !!(
         this.role.image &&
         (this.role.trustedImage ||
