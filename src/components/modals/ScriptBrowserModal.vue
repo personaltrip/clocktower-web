@@ -179,7 +179,12 @@ export default {
     async loadScript(script) {
       this.loading = true;
       try {
-        const res = await fetch("/" + script.file);
+        // 对路径分段编码，保留 / 分隔符，处理 # " 等特殊字符
+        const encodedPath = script.file
+          .split("/")
+          .map(segment => encodeURIComponent(segment))
+          .join("/");
+        const res = await fetch("/" + encodedPath);
         const roles = await res.json();
         this.parseRoles(roles);
         this.toggleModal("scriptBrowser");
