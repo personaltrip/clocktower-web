@@ -219,6 +219,16 @@ export default new Vuex.Store({
         // default empty icons and placeholders, clean up firstNight / otherNight
         .map(role => {
           if (rolesJSONbyId.get(role.id)) return role;
+          // 尝试通过角色名匹配标准角色，获取标准 id 用于加载本地图标
+          if (!role.image) {
+            const canonical = [...rolesJSONbyId.values()].find(
+              r => r.name === role.name && r.team === role.team
+            );
+            if (canonical) {
+              role.imageAlt = canonical.id;
+              return role;
+            }
+          }
           role.imageAlt = // map team to generic icon
             {
               townsfolk: "good",
