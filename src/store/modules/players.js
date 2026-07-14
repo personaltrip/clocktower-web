@@ -114,6 +114,9 @@ const mutations = {
   update(state, { player, property, value }) {
     const index = state.players.indexOf(player);
     if (index >= 0) {
+      if (property === "id") {
+        console.log("[players/update] id commit: index=", index, "value=", JSON.stringify(value), "stack=", new Error().stack.split('\n').slice(1,8).join('\n'));
+      }
       state.players[index][property] = value;
     }
   },
