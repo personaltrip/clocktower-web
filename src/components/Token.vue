@@ -73,9 +73,28 @@ export default {
           (!this.role.isCustom && this.grimoire.isImageOptIn))
       );
     },
+    /**
+     * 将外部图片 URL 转换为服务器代理地址，实现服务器端缓存
+     */
+    proxiedImageUrl() {
+      if (!this.role.image) return null;
+      // 只对特定外部域名使用代理
+      const externalDomains = [
+        "bloodstar.xyz",
+        "www.bloodstar.xyz",
+        "oss.gstonegames.com"
+      ];
+      const isExternal = externalDomains.some(domain =>
+        this.role.image.includes(domain)
+      );
+      if (isExternal) {
+        return `/image-proxy/?url=${encodeURIComponent(this.role.image)}`;
+      }
+      return this.role.image;
+    },
     iconUrl() {
       if (this.cachedImageUrl) return this.cachedImageUrl;
-      if (this.useRemoteImage) return this.role.image;
+      if (this.useRemoteImage) return this.proxiedImageUrl;
       return require("../assets/icons/" + (this.role.imageAlt || this.role.id) + ".png");
     },
     ...mapState(["grimoire"])
@@ -105,7 +124,8 @@ export default {
         if (this._isDestroyed) return;
         this.cachedImageUrl = cached;
       } else {
-        const url = await cacheImage(this.role.id, this.role.image);
+        // 使用代理 URL 进行缓存，实现服务器端缓存
+        const url = await cacheImage(this.role.id, this.proxiedImageUrl);
         if (this._isDestroyed) return;
         this.cachedImageUrl = url;
       }
