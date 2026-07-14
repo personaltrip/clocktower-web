@@ -569,9 +569,9 @@ class LiveSession {
    * @param value
    */
   sendPlayer({ player, property, value }) {
-    console.log("[WS] sendPlayer called: property=", property, "value=", value, "isSpectator=", this._isSpectator, "stack=", new Error().stack.split('\n').slice(1,5).join(' | '));
-    if (this._isSpectator || property === "reminders") { console.log("[WS] sendPlayer: skipped (spectator or reminders)"); return; }
+    if (this._isSpectator || property === "reminders") return;
     const index = this._store.state.players.players.indexOf(player);
+    console.log("[WS] sendPlayer: index=", index, "property=", property, "value=", value, "stack=", new Error().stack.split('\n').slice(1,6).join('\n'));
     if (property === "role") {
       if (value.team && value.team === "traveler") {
         // update local gamestate to remember this player as a traveler
@@ -1070,7 +1070,7 @@ export default store => {
         if (!state.session.isSpectator) session.sendGamestate("", true);
         break;
       case "players/update":
-        console.log("[WS] subscriber players/update: property=", payload.property, "value=", payload.value, "isSpectator=", state.session.isSpectator);
+        console.log("[WS] subscriber players/update: property=", payload.property, "value=", payload.value, "isSpectator=", state.session.isSpectator, "\nstack=", new Error().stack.split('\n').slice(1,6).join('\n'));
         if (!state.session.isSpectator) {
           if (payload.property === "pronouns") {
             session.sendPlayerPronouns(payload);
