@@ -210,25 +210,20 @@ export default new Vuex.Store({
           return role;
         })
         // map existing roles to base definition or pre-populate custom roles to ensure all properties
-        .map(
-          role =>
-            rolesJSONbyId.get(role.id) ||
-            state.roles.get(role.id) ||
-            Object.assign({}, customRole, role)
-        )
+        // 对于非标准 id 的角色，通过名称+阵营匹配标准角色获取完整定义
+        .map(role => {
+          const byId = rolesJSONbyId.get(role.id) || state.roles.get(role.id);
+          if (byId) return byId;
+          // 按名称+阵营查找标准角色
+          const byName = [...rolesJSONbyId.values()].find(
+            r => r.name === role.name && r.team === role.team
+          );
+          if (byName) return byName;
+          return Object.assign({}, customRole, role);
+        })
         // default empty icons and placeholders, clean up firstNight / otherNight
         .map(role => {
           if (rolesJSONbyId.get(role.id)) return role;
-          // 尝试通过角色名匹配标准角色，获取标准 id 用于加载本地图标
-          if (!role.image) {
-            const canonical = [...rolesJSONbyId.values()].find(
-              r => r.name === role.name && r.team === role.team
-            );
-            if (canonical) {
-              role.imageAlt = canonical.id;
-              return role;
-            }
-          }
           role.imageAlt = // map team to generic icon
             {
               townsfolk: "good",
