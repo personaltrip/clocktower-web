@@ -36,6 +36,7 @@
     <VoteHistoryModal />
     <GameStateModal />
     <RoomListModal />
+    <ScriptBrowserModal />
     <Gradients />
     <span id="version">v{{ version }}</span>
   </div>
@@ -58,10 +59,12 @@ import FabledModal from "@/components/modals/FabledModal";
 import VoteHistoryModal from "@/components/modals/VoteHistoryModal";
 import GameStateModal from "@/components/modals/GameStateModal";
 import RoomListModal from "@/components/modals/RoomListModal";
+import ScriptBrowserModal from "@/components/modals/ScriptBrowserModal";
 
 export default {
   components: {
     RoomListModal,
+    ScriptBrowserModal,
     GameStateModal,
     VoteHistoryModal,
     FabledModal,

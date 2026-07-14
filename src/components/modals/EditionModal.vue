@@ -18,6 +18,15 @@
         </li>
         <li
           class="edition edition-custom"
+          @click="toggleModal('scriptBrowser')"
+          :style="{
+            backgroundImage: `url(${require('../../assets/editions/custom.png')})`
+          }"
+        >
+          <span class="edition-name">内置剧本</span>
+        </li>
+        <li
+          class="edition edition-custom"
           @click="isCustom = true"
           :style="{
             backgroundImage: `url(${require('../../assets/editions/custom.png')})`
