@@ -7,7 +7,7 @@
         :class="['edition-' + edition.id]"
         :style="{
           backgroundImage: `url(${
-            edition.logo && grimoire.isImageOptIn
+            edition.logo
               ? edition.logo
               : require('../assets/editions/' + edition.id + '.png')
           })`

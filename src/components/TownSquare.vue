@@ -422,9 +422,10 @@ export default {
     left: 10px;
   }
   &.fabled {
-    top: 10px;
+    bottom: 10px;
     right: 10px;
     left: auto;
+    transform-origin: bottom right;
   }
   background: rgba(0, 0, 0, 0.5);
   border-radius: 10px;
