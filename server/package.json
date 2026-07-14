@@ -1,0 +1,11 @@
+{
+  "name": "clocktower-ws",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebSocket server for Blood on the Clocktower online grimoire",
+  "main": "index.js",
+  "dependencies": {
+    "ws": "^7.4.6",
+    "prom-client": "^13.0.0"
+  }
+}

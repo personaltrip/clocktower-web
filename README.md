@@ -60,10 +60,10 @@ npm run lint-ci
 
 ### Docker 部署
 
-一键部署到生产环境：
+一键部署到生产环境（包含 Web 静态文件和 WebSocket 两个服务）：
 
 ```bash
-# 构建并启动
+# 构建并启动（web:80 + ws:8080 内部通信）
 docker compose up -d --build
 
 # 查看日志
@@ -72,6 +72,8 @@ docker compose logs -f
 # 停止服务
 docker compose down
 ```
+
+Nginx 会自动将 WebSocket 升级请求代理到后端 WS 服务，无需额外配置。
 
 如需热更新剧本（不重新构建镜像），取消 `docker-compose.yml` 中 volumes 注释后重启：
 
@@ -427,13 +429,15 @@ clocktower/
 │       └── editions/          # 剧本 logo
 ├── server/
 │   ├── index.js               # WebSocket 服务器
+│   ├── package.json           # WS 服务器依赖（ws + prom-client）
 │   └── ecosystem.config.js    # PM2 配置
 ├── public/                     # 公共静态资源
 │   ├── scripts/               # 内置剧本 JSON (900+ 剧本)
 │   └── scripts-index.json     # 剧本索引
-├── Dockerfile                  # Docker 多阶段构建
-├── docker-compose.yml          # Docker Compose 编排
-├── nginx.conf                  # Nginx 配置
+├── Dockerfile                  # Docker 多阶段构建（Web 前端）
+├── Dockerfile.ws               # Docker 镜像（WebSocket 服务）
+├── docker-compose.yml          # Docker Compose 编排（web + ws）
+├── nginx.conf                  # Nginx 配置（含 WebSocket 反向代理）
 └── package.json               # 项目配置
 ```
 

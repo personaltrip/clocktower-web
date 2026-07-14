@@ -13,10 +13,12 @@ register.setDefaultLabels({
 const PING_INTERVAL = 30000; // 30 seconds
 
 const isDev = process.env.NODE_ENV === "development";
+// HTTP_MODE=1: 使用 HTTP（适用于 Docker 内部/nginx 反向代理场景，无需证书）
+const isHttpMode = process.env.HTTP_MODE === "1";
 
 let server;
-if (isDev) {
-  // 开发模式：使用 HTTP，不需要证书
+if (isDev || isHttpMode) {
+  // 开发模式或 Docker 反向代理模式：使用 HTTP，不需要证书
   server = require("http").createServer();
 } else {
   const options = {
@@ -41,8 +43,8 @@ const allowedOrigins = /^https?:\/\/([^.]+\.github\.io|localhost|clocktower\.onl
 
 // unified connection verification: origin + room validation + duplicate host
 function verifyClient(info, callback) {
-  // origin check (production only)
-  if (process.env.NODE_ENV !== "development") {
+  // origin check (production only, skip in dev or Docker HTTP mode)
+  if (process.env.NODE_ENV !== "development" && !isHttpMode) {
     if (info.origin && !info.origin.match(allowedOrigins)) {
       return callback(false, 403, "Forbidden", { "X-Reason": "origin" });
     }
@@ -421,9 +423,9 @@ wss.on("close", function close() {
   clearInterval(interval);
 });
 
-// prod mode with stats API
-if (process.env.NODE_ENV !== "development") {
-  console.log("server starting");
+// prod mode with stats API (also used in Docker HTTP mode)
+if (process.env.NODE_ENV !== "development" || isHttpMode) {
+  console.log("server starting" + (isHttpMode ? " (HTTP mode)" : ""));
   server.listen(8080);
   server.on("request", (req, res) => {
     res.setHeader("Content-Type", register.contentType);
