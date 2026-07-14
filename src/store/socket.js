@@ -189,9 +189,7 @@ class LiveSession {
     } catch (err) {
       console.log("unsupported socket message", data);
     }
-    if (command === "claim" || command === "player") {
-      console.log("[WS] received:", command, JSON.stringify(params));
-    }
+    console.log("[WS] received:", command, JSON.stringify(params));
     switch (command) {
       case "getGamestate":
         this.sendGamestate(params);
@@ -456,6 +454,7 @@ class LiveSession {
     const players = this._store.state.players.players;
     // adjust number of players (lightweight only, full already synced above)
     if (isLightweight) {
+      console.log("[WS] _updateGamestate lightweight: gamestate.length=", gamestate.length, "ids=", gamestate.map(g => g.id));
       if (players.length < gamestate.length) {
         for (let x = players.length; x < gamestate.length; x++) {
           this._store.commit("players/add", gamestate[x].name);
@@ -570,7 +569,7 @@ class LiveSession {
    * @param value
    */
   sendPlayer({ player, property, value }) {
-    console.log("[WS] sendPlayer called: property=", property, "isSpectator=", this._isSpectator);
+    console.log("[WS] sendPlayer called: property=", property, "value=", value, "isSpectator=", this._isSpectator, "stack=", new Error().stack.split('\n').slice(1,5).join(' | '));
     if (this._isSpectator || property === "reminders") { console.log("[WS] sendPlayer: skipped (spectator or reminders)"); return; }
     const index = this._store.state.players.players.indexOf(player);
     if (property === "role") {
@@ -770,7 +769,7 @@ class LiveSession {
    * @private
    */
   _updateSeat([index, value]) {
-    console.log("[WS] _updateSeat: index=", index, "value=", value, "players.length=", this._store.state.players.players.length);
+    console.log("[WS] _updateSeat: index=", index, "value=", value, "players.length=", this._store.state.players.players.length, "stack=", new Error().stack.split('\n').slice(1,4).join(' | '));
     const property = "id";
     const players = this._store.state.players.players;
     // remove previous seat
@@ -1071,7 +1070,7 @@ export default store => {
         if (!state.session.isSpectator) session.sendGamestate("", true);
         break;
       case "players/update":
-        console.log("[WS] subscriber players/update: property=", payload.property, "isSpectator=", state.session.isSpectator);
+        console.log("[WS] subscriber players/update: property=", payload.property, "value=", payload.value, "isSpectator=", state.session.isSpectator);
         if (!state.session.isSpectator) {
           if (payload.property === "pronouns") {
             session.sendPlayerPronouns(payload);
