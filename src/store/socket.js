@@ -101,7 +101,7 @@ class LiveSession {
   _send(command, params) {
     if (this._socket && this._socket.readyState === 1) {
       this._socket.send(JSON.stringify([command, params]));
-      console.log("[WS] sent:", command);
+      console.log("[WS] sent:", command, command === "claim" ? JSON.stringify(params) : "");
     } else if (this._socket) {
       // socket 尚未 OPEN（CONNECTING 状态），暂存到队列，onopen 时发出
       console.log("[WS] queue:", command, "(socket readyState =", this._socket.readyState + ")");
@@ -754,6 +754,7 @@ class LiveSession {
    */
   claimSeat(seat) {
     if (!this._isSpectator) return;
+    console.log("[WS] claimSeat called: seat=", seat, "playerId=", this._store.state.session.playerId, "players.length=", this._store.state.players.players.length, "gamestateReceived=", this._gamestateReceived);
     this._send("claim", [seat, this._store.state.session.playerId]);
   }
 
@@ -764,11 +765,13 @@ class LiveSession {
    * @private
    */
   _updateSeat([index, value]) {
+    console.log("[WS] _updateSeat: index=", index, "value=", value, "players.length=", this._store.state.players.players.length);
     const property = "id";
     const players = this._store.state.players.players;
     // remove previous seat
     const oldIndex = players.findIndex(({ id }) => id === value);
     if (oldIndex >= 0 && oldIndex !== index) {
+      console.log("[WS] _updateSeat: removing old seat at", oldIndex);
       this._store.commit("players/update", {
         player: players[oldIndex],
         property,
@@ -778,7 +781,8 @@ class LiveSession {
     // add playerId to new seat
     if (index >= 0) {
       const player = players[index];
-      if (!player) return;
+      if (!player) { console.log("[WS] _updateSeat: player not found at index", index); return; }
+      console.log("[WS] _updateSeat: setting player.id at index", index, "to", value);
       this._store.commit("players/update", { player, property, value });
     }
     // 只有 host 需要更新 _players 和 playerCount
@@ -1005,7 +1009,7 @@ export default store => {
         }
         break;
       case "session/claimSeat":
-        console.log("[WS] claimSeat subscriber, sessionId:", !!state.session.sessionId, "seat:", payload);
+        console.log("[WS] subscriber session/claimSeat: sessionId=", !!state.session.sessionId, "seat=", payload, "isSpectator=", state.session.isSpectator);
         session.claimSeat(payload);
         break;
       case "session/distributeRoles":
