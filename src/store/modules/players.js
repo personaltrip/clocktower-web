@@ -114,9 +114,6 @@ const mutations = {
   update(state, { player, property, value }) {
     const index = state.players.indexOf(player);
     if (index >= 0) {
-      if (property === "id") {
-        console.log("[players/update] id commit: index=", index, "value=", JSON.stringify(value), "\nFULL STACK:\n", new Error().stack);
-      }
       state.players[index][property] = value;
     }
   },
@@ -125,8 +122,6 @@ const mutations = {
    * 保留本地角色（非旅行者）、笔记、提醒等，仅同步座位/死亡/旅行者角色。
    */
   syncGamestate(state, { gamestate, roles, rolesJSONbyId, claimedSeat }) {
-    console.log("[syncGamestate] called: gamestate.length=", gamestate.length, "currentPlayers.length=", state.players.length, "claimedSeat=", claimedSeat);
-    console.log("[syncGamestate] gamestate ids:", gamestate.map(gs => gs.id));
     // 调整玩家数量
     while (state.players.length < gamestate.length) {
       state.players.push({ ...NEWPLAYER });

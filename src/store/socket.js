@@ -101,7 +101,7 @@ class LiveSession {
   _send(command, params) {
     if (this._socket && this._socket.readyState === 1) {
       this._socket.send(JSON.stringify([command, params]));
-      console.log("[WS] sent:", command, command === "claim" ? JSON.stringify(params) : "");
+      console.log("[WS] sent:", command);
     } else if (this._socket) {
       // socket 尚未 OPEN（CONNECTING 状态），暂存到队列，onopen 时发出
       console.log("[WS] queue:", command, "(socket readyState =", this._socket.readyState + ")");
@@ -189,7 +189,6 @@ class LiveSession {
     } catch (err) {
       console.log("unsupported socket message", data);
     }
-    console.log("[WS] received:", command, JSON.stringify(params));
     switch (command) {
       case "getGamestate":
         this.sendGamestate(params);
@@ -454,7 +453,6 @@ class LiveSession {
     const players = this._store.state.players.players;
     // adjust number of players (lightweight only, full already synced above)
     if (isLightweight) {
-      console.log("[WS] _updateGamestate lightweight: gamestate.length=", gamestate.length, "ids=", gamestate.map(g => g.id));
       if (players.length < gamestate.length) {
         for (let x = players.length; x < gamestate.length; x++) {
           this._store.commit("players/add", gamestate[x].name);
@@ -571,7 +569,6 @@ class LiveSession {
   sendPlayer({ player, property, value }) {
     if (this._isSpectator || property === "reminders") return;
     const index = this._store.state.players.players.indexOf(player);
-    console.log("[WS] sendPlayer: index=", index, "property=", property, "value=", value, "stack=", new Error().stack.split('\n').slice(1,6).join('\n'));
     if (property === "role") {
       if (value.team && value.team === "traveler") {
         // update local gamestate to remember this player as a traveler
@@ -599,9 +596,8 @@ class LiveSession {
    * @private
    */
   _updatePlayer({ index, property, value }) {
-    console.log("[WS] _updatePlayer: index=", index, "property=", property, "value=", value, "players.length=", this._store.state.players.players.length);
     const player = this._store.state.players.players[index];
-    if (!player) { console.log("[WS] _updatePlayer: player not found at index", index); return; }
+    if (!player) return;
     if (property === "role") {
       // 角色更新对观众和恶魔都生效（恶魔需要接收自己的伪装）
       let roleId;
@@ -688,26 +684,8 @@ class LiveSession {
   _handlePing([playerIdOrCount = 0, latency] = []) {
     const now = new Date().getTime();
     if (!this._isSpectator) {
-      console.log("[PING] _handlePing: from=", playerIdOrCount, "players=", Object.keys(this._players), "seatedIds=", this._store.state.players.players.map(p => p.id));
-      // remove players that haven't sent a ping in twice the timespan
-      for (let player in this._players) {
-        if (now - this._players[player] > this._pingInterval * 8) {
-          delete this._players[player];
-          delete this._pings[player];
-        }
-      }
-      // remove claimed seats from players that are no longer connected
-      this._store.state.players.players.forEach(player => {
-        if (player.id && !this._players[player.id]) {
-          console.log("[PING] clearing seat: player=", player.name, "id=", player.id, "(not in _players)");
-          this._store.commit("players/update", {
-            player,
-            property: "id",
-            value: ""
-          });
-        }
-      });
-      // store new player data — only accept UUID strings, not numeric counts
+      // store new player data FIRST — only accept UUID strings, not numeric counts
+      // 先注册再清除，防止新入座观众的第一个 ping 被误判为断连
       if (playerIdOrCount && typeof playerIdOrCount === "string") {
         this._players[playerIdOrCount] = now;
         const ping = parseInt(latency, 10);
@@ -721,6 +699,23 @@ class LiveSession {
           );
         }
       }
+      // remove players that haven't sent a ping in twice the timespan
+      for (let player in this._players) {
+        if (now - this._players[player] > this._pingInterval * 8) {
+          delete this._players[player];
+          delete this._pings[player];
+        }
+      }
+      // remove claimed seats from players that are no longer connected
+      this._store.state.players.players.forEach(player => {
+        if (player.id && !this._players[player.id]) {
+          this._store.commit("players/update", {
+            player,
+            property: "id",
+            value: ""
+          });
+        }
+      });
       // host always updates its own player count from _players map
       // 但如果服务器推送了 playerCount，优先使用服务器的值
       const serverPlayerCount = this._store.state.session.playerCount;
@@ -760,7 +755,6 @@ class LiveSession {
    */
   claimSeat(seat) {
     if (!this._isSpectator) return;
-    console.log("[WS] claimSeat called: seat=", seat, "playerId=", this._store.state.session.playerId, "players.length=", this._store.state.players.players.length, "gamestateReceived=", this._gamestateReceived);
     this._send("claim", [seat, this._store.state.session.playerId]);
   }
 
@@ -771,13 +765,11 @@ class LiveSession {
    * @private
    */
   _updateSeat([index, value]) {
-    console.log("[WS] _updateSeat: index=", index, "value=", value, "players.length=", this._store.state.players.players.length, "stack=", new Error().stack.split('\n').slice(1,4).join(' | '));
     const property = "id";
     const players = this._store.state.players.players;
     // remove previous seat
     const oldIndex = players.findIndex(({ id }) => id === value);
     if (oldIndex >= 0 && oldIndex !== index) {
-      console.log("[WS] _updateSeat: removing old seat at", oldIndex);
       this._store.commit("players/update", {
         player: players[oldIndex],
         property,
@@ -787,8 +779,7 @@ class LiveSession {
     // add playerId to new seat
     if (index >= 0) {
       const player = players[index];
-      if (!player) { console.log("[WS] _updateSeat: player not found at index", index); return; }
-      console.log("[WS] _updateSeat: setting player.id at index", index, "to", value);
+      if (!player) return;
       this._store.commit("players/update", { player, property, value });
     }
     // 只有 host 需要更新 _players 和 playerCount
@@ -1015,7 +1006,6 @@ export default store => {
         }
         break;
       case "session/claimSeat":
-        console.log("[WS] subscriber session/claimSeat: sessionId=", !!state.session.sessionId, "seat=", payload, "isSpectator=", state.session.isSpectator);
         session.claimSeat(payload);
         break;
       case "session/distributeRoles":
@@ -1072,7 +1062,6 @@ export default store => {
         if (!state.session.isSpectator) session.sendGamestate("", true);
         break;
       case "players/update":
-        console.log("[WS] subscriber players/update: property=", payload.property, "value=", payload.value, "isSpectator=", state.session.isSpectator, "\nstack=", new Error().stack.split('\n').slice(1,6).join('\n'));
         if (!state.session.isSpectator) {
           if (payload.property === "pronouns") {
             session.sendPlayerPronouns(payload);
