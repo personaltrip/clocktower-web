@@ -2,7 +2,6 @@
   <Modal
     class="script-browser"
     v-if="modals.scriptBrowser"
-    :maximized="true"
     @close="toggleModal('scriptBrowser')"
   >
     <div class="browser-header">
@@ -37,9 +36,6 @@
     </div>
 
     <div class="browser-content" v-if="!loading">
-      <div class="results-info">
-        共 {{ filteredScripts.length }} 个剧本
-      </div>
       <div class="script-grid">
         <div
           v-for="script in pagedScripts"
@@ -54,7 +50,11 @@
           </div>
         </div>
       </div>
-      <div class="pagination" v-if="totalPages > 1">
+    </div>
+
+    <div class="browser-footer" v-if="!loading && totalPages > 1">
+      <span class="results-info">共 {{ filteredScripts.length }} 个剧本</span>
+      <div class="pagination">
         <span class="page-btn" :class="{ disabled: currentPage <= 1 }" @click="goPage(currentPage - 1)">
           &laquo;
         </span>
@@ -220,13 +220,22 @@ export default {
 </script>
 
 <style scoped lang="scss">
+/* 让 modal 内部使用 flex 布局 */
+::v-deep .script-browser.modal .slot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
 .browser-header {
-  padding: 8px 0;
+  flex-shrink: 0;
+  padding: 6px 0;
   h3 {
     text-align: center;
-    margin: 0 0 8px;
+    margin: 0 0 6px;
     font-family: PiratesBay, sans-serif;
-    font-size: 120%;
+    font-size: 110%;
   }
 }
 
@@ -236,87 +245,54 @@ export default {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
-  padding: 6px 14px;
-  margin-bottom: 8px;
-  svg {
-    color: #999;
-    margin-right: 8px;
-    flex-shrink: 0;
-  }
+  padding: 5px 12px;
+  margin-bottom: 6px;
+  svg { color: #999; margin-right: 8px; flex-shrink: 0; }
   input {
-    flex: 1;
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 100%;
-    outline: none;
+    flex: 1; background: none; border: none; color: #fff;
+    font-size: 90%; outline: none;
     &::placeholder { color: #666; }
   }
-  .clear-btn {
-    cursor: pointer;
-    color: #999;
-    &:hover { color: #fff; }
-  }
+  .clear-btn { cursor: pointer; color: #999; &:hover { color: #fff; } }
 }
 
 .category-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  padding: 2px 0;
+  gap: 4px;
   .tab {
-    display: inline-block;
-    padding: 3px 9px;
-    border-radius: 12px;
-    font-size: 75%;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 70%;
     cursor: pointer;
     background: rgba(255, 255, 255, 0.08);
     color: #ccc;
     white-space: nowrap;
     transition: all 150ms;
     &:hover { background: rgba(255, 255, 255, 0.2); }
-    &.active {
-      background: rgba(200, 160, 80, 0.5);
-      color: #fff;
-    }
+    &.active { background: rgba(200, 160, 80, 0.5); color: #fff; }
   }
 }
 
 .browser-content {
-  overflow-y: auto;
   flex: 1;
+  overflow-y: auto;
   min-height: 0;
-}
-
-.results-info {
-  text-align: center;
-  color: #999;
-  font-size: 75%;
-  padding: 4px 0 6px;
+  padding: 4px 0;
 }
 
 .script-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding-bottom: 10px;
+  gap: 6px;
 }
 
 @media (max-width: 768px) {
-  .script-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .script-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-  }
+  .script-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .script-card {
-  padding: 10px;
+  padding: 8px 10px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
@@ -330,8 +306,8 @@ export default {
 
 .card-name {
   font-weight: bold;
-  font-size: 85%;
-  margin-bottom: 4px;
+  font-size: 80%;
+  margin-bottom: 3px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -345,7 +321,7 @@ export default {
 }
 
 .card-author {
-  font-size: 70%;
+  font-size: 65%;
   color: #b0a080;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -354,7 +330,7 @@ export default {
 }
 
 .card-players {
-  font-size: 75%;
+  font-size: 70%;
   color: #aaa;
   background: rgba(255, 255, 255, 0.08);
   padding: 1px 6px;
@@ -363,48 +339,45 @@ export default {
   flex-shrink: 0;
 }
 
+.browser-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.results-info {
+  color: #999;
+  font-size: 75%;
+  white-space: nowrap;
+}
+
 .pagination {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 4px;
-  padding: 10px 0;
-  position: sticky;
-  bottom: 0;
-  background: rgba(20, 20, 30, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 3px;
 }
 
 .page-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 6px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 5px;
   border-radius: 4px;
-  font-size: 80%;
+  font-size: 75%;
   cursor: pointer;
   color: #ccc;
   background: rgba(255, 255, 255, 0.06);
   transition: all 150ms;
   user-select: none;
-  &:hover:not(.disabled):not(.ellipsis) {
-    background: rgba(255, 255, 255, 0.15);
-  }
-  &.active {
-    background: rgba(200, 160, 80, 0.5);
-    color: #fff;
-    font-weight: bold;
-  }
-  &.disabled {
-    color: #555;
-    cursor: default;
-  }
-  &.ellipsis {
-    cursor: default;
-    background: none;
-  }
+  &:hover:not(.disabled):not(.ellipsis) { background: rgba(255, 255, 255, 0.15); }
+  &.active { background: rgba(200, 160, 80, 0.5); color: #fff; font-weight: bold; }
+  &.disabled { color: #555; cursor: default; }
+  &.ellipsis { cursor: default; background: none; }
 }
 
 .browser-loading {
@@ -414,6 +387,5 @@ export default {
   gap: 10px;
   padding: 40px;
   color: #999;
-  font-size: 110%;
 }
 </style>
