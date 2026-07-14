@@ -52,7 +52,8 @@ const clean = id => id.toLocaleLowerCase().replace(/[^a-z0-9]/g, "");
 const editionJSONbyId = new Map(
   editionJSON.map(edition => [edition.id, edition])
 );
-const rolesJSONbyId = new Map(rolesJSON.map(role => [role.id, role]));
+// 使用清理后的 ID 作为键，确保与 setCustomRoles 中的 clean(id) 一致
+const rolesJSONbyId = new Map(rolesJSON.map(role => [clean(role.id), role]));
 const fabled = new Map(
   fabledJSON.map(role => [role.id, { ...role, trustedImage: true }])
 );
@@ -221,7 +222,7 @@ export default new Vuex.Store({
           if (byId) {
             // trusted 模式下（内置剧本/WebSocket），保留剧本中的自定义属性（如 image、reminders 等）
             if (trusted) {
-              const merged = { ...byId, ...role, id: byId.id };
+              const merged = { ...byId, ...role };
               if (merged.image) merged.trustedImage = true;
               return merged;
             }
@@ -233,8 +234,9 @@ export default new Vuex.Store({
           );
           if (byName) {
             // trusted 模式下（内置剧本/WebSocket），保留剧本中的自定义属性（如 image、reminders 等）
+            // 但保留剧本的原始 ID，避免 ID 不一致导致的问题
             if (trusted) {
-              const merged = { ...byName, ...role, id: byName.id };
+              const merged = { ...byName, ...role };
               if (merged.image) merged.trustedImage = true;
               return merged;
             }

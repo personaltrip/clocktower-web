@@ -518,20 +518,25 @@ class LiveSession {
     this._store.commit("setEdition", edition);
     if (roles) {
       this._store.commit("setCustomRoles", { roles, trusted: true });
+      // 检查是否有角色未找到（清理 ID 后比较，因为 setCustomRoles 会清理 ID）
+      const clean = id => id.toLocaleLowerCase().replace(/[^a-z0-9]/g, "");
       if (this._store.state.roles.size !== roles.length) {
         const missing = [];
         roles.forEach(({ id }) => {
-          if (!this._store.state.roles.get(id)) {
+          const cleanedId = clean(id);
+          if (!this._store.state.roles.get(cleanedId)) {
             missing.push(id);
           }
         });
-        alert(
-          `This session contains custom characters that can't be found. ` +
-            `Please load them before joining! ` +
-            `Missing roles: ${missing.join(", ")}`
-        );
-        this.disconnect();
-        this._store.commit("toggleModal", "edition");
+        if (missing.length > 0) {
+          alert(
+            `This session contains custom characters that can't be found. ` +
+              `Please load them before joining! ` +
+              `Missing roles: ${missing.join(", ")}`
+          );
+          this.disconnect();
+          this._store.commit("toggleModal", "edition");
+        }
       }
     }
   }
