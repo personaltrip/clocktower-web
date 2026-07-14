@@ -218,12 +218,28 @@ export default new Vuex.Store({
         // 对于非标准 id 的角色，通过名称+阵营匹配标准角色获取完整定义
         .map(role => {
           const byId = rolesJSONbyId.get(role.id) || state.roles.get(role.id);
-          if (byId) return { ...byId };
+          if (byId) {
+            // trusted 模式下（内置剧本/WebSocket），保留剧本中的自定义属性（如 image、reminders 等）
+            if (trusted) {
+              const merged = { ...byId, ...role };
+              if (merged.image) merged.trustedImage = true;
+              return merged;
+            }
+            return { ...byId };
+          }
           // 按名称+阵营查找标准角色
           const byName = [...rolesJSONbyId.values()].find(
             r => r.name === role.name && r.team === role.team
           );
-          if (byName) return { ...byName };
+          if (byName) {
+            // trusted 模式下（内置剧本/WebSocket），保留剧本中的自定义属性（如 image、reminders 等）
+            if (trusted) {
+              const merged = { ...byName, ...role };
+              if (merged.image) merged.trustedImage = true;
+              return merged;
+            }
+            return { ...byName };
+          }
           // trusted=true 时（内置剧本/WebSocket），所有角色（含完全自定义）均标记可信
           const merged = Object.assign({}, customRole, role);
           if (trusted) merged.trustedImage = true;
