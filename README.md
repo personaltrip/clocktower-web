@@ -58,6 +58,29 @@ npm run lint
 npm run lint-ci
 ```
 
+### Docker 部署
+
+一键部署到生产环境：
+
+```bash
+# 构建并启动
+docker compose up -d --build
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+```
+
+如需热更新剧本（不重新构建镜像），取消 `docker-compose.yml` 中 volumes 注释后重启：
+
+```bash
+docker compose restart web
+```
+
+访问 `http://your-server-ip` 即可使用。
+
 ---
 
 ## 核心功能
@@ -68,6 +91,7 @@ npm run lint-ci
 - **昼夜切换** (快捷键 **S**)：支持夜晚模式显示，带动态背景效果
 - **玩家管理**：添加/移除玩家、随机座位、交换/移动位置
 - **角色分配**：支持官方剧本和自定义剧本的角色管理
+- **内置剧本浏览器**：内置 900+ 剧本，支持搜索和分类筛选，一键加载
 - **恶魔伪装**：为恶魔设置伪装角色，可分发给玩家查看
 - **传奇角色**：支持添加/移除传奇 (Fabled) 角色
 - **提醒标记**：为每个玩家添加技能提醒 token
@@ -92,7 +116,8 @@ npm run lint-ci
 ### 💾 数据持久化
 
 - **自动保存**：所有游戏状态自动保存到 localStorage
-- **完整恢复**：页面刷新后完整恢复游戏状态（玩家、角色、设置等）
+- **完整恢复**：页面刷新后完整恢复游戏状态（玩家、角色、剧本、设置等）
+- **图片缓存**：自定义剧本角色图标异步缓存到 IndexedDB，下次加载秒开
 - **会话恢复**：通过 URL hash (`#roomname`) 自动加入房间
 
 ### 🎨 界面定制
@@ -152,7 +177,6 @@ npm run lint-ci
 | 文件 | 行数 | 内容 |
 |------|------|------|
 | `src/roles.json` | 3,505 | 所有角色定义 (中文)，含夜晚顺序、提醒词、技能描述 |
-| `src/roles_zh.json` | 4,099 | 中文角色数据（补充版本） |
 | `src/fabled.json` | 232 | 传奇/奇遇角色 |
 | `src/hatred.json` | 376 | 角色相克 (Jinx) 关系 |
 | `src/game.json` | 13 | 人数对应角色配置规则 |
@@ -198,7 +222,8 @@ sendPlayer({ player, property, value }) {
 
 - 兼容官方 Script Tool JSON 格式 + `_meta` 扩展
 - 自定义角色用数字索引替代 key 名以节省带宽
-- 支持自定义图片（需 `isImageOptIn` 安全开关）
+- **内置剧本浏览器**：900+ 剧本一键加载，无需手动上传 JSON
+- **智能图片策略**：官方剧本使用本地图标，自定义剧本使用 JSON 中的远程 URL 并缓存到 IndexedDB
 
 ### 4. 状态持久化
 
@@ -351,7 +376,7 @@ _handleSessionDestroy() {
 - `ability` - 角色技能描述
 
 **可选属性：**
-- `image` - 角色图标 URL（需开启自定义图片选项）
+- `image` - 角色图标 URL（内置剧本自动缓存到 IndexedDB，用户上传剧本需开启自定义图片选项）
 - `edition` - 所属剧本 ID
 - `firstNight` / `otherNight` - 首夜/其他夜晚行动顺序（正整数，0 表示不行动）
 - `firstNightReminder` / `otherNightReminder` - 夜晚提醒文本
@@ -375,6 +400,8 @@ clocktower/
 │   │   │   └── session.js     # 联机会话模块
 │   │   ├── persistence.js     # localStorage 持久化
 │   │   └── socket.js          # WebSocket 插件
+│   ├── utils/
+│   │   └── imageCache.js      # IndexedDB 图片缓存
 │   ├── components/             # Vue 组件
 │   │   ├── TownSquare.vue     # 主游戏区
 │   │   ├── Player.vue         # 玩家 token
@@ -385,8 +412,8 @@ clocktower/
 │   │   ├── TownInfo.vue       # 游戏信息条
 │   │   ├── Gradients.vue      # SVG 渐变
 │   │   └── modals/            # 模态框组件
+│   │       └── ScriptBrowserModal.vue  # 内置剧本浏览器
 │   ├── roles.json             # 角色定义 (中文)
-│   ├── roles_zh.json          # 中文角色数据（补充）
 │   ├── editions.json          # 剧本版本定义
 │   ├── fabled.json            # 传奇角色
 │   ├── hatred.json            # 相克关系
@@ -402,6 +429,11 @@ clocktower/
 │   ├── index.js               # WebSocket 服务器
 │   └── ecosystem.config.js    # PM2 配置
 ├── public/                     # 公共静态资源
+│   ├── scripts/               # 内置剧本 JSON (900+ 剧本)
+│   └── scripts-index.json     # 剧本索引
+├── Dockerfile                  # Docker 多阶段构建
+├── docker-compose.yml          # Docker Compose 编排
+├── nginx.conf                  # Nginx 配置
 └── package.json               # 项目配置
 ```
 
