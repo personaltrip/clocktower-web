@@ -14,15 +14,7 @@
       >
         <span
           class="icon"
-          :style="{
-            backgroundImage: `url(${
-              reminder.image && grimoire.isImageOptIn
-                ? reminder.image
-                : require('../../assets/icons/' +
-                    (reminder.imageAlt || reminder.role) +
-                    '.png')
-            })`
-          }"
+          :style="{ backgroundImage: `url(${getReminderIconUrl(reminder)})` }"
         ></span>
         <span class="text">{{ reminder.name }}</span>
       </li>
@@ -33,22 +25,27 @@
 <script>
 import Modal from "./Modal";
 import { mapMutations, mapState } from "vuex";
+import { getCachedImage, cacheImage } from "../../utils/imageCache";
 
 /**
  * Helper function that maps a reminder name with a role-based object that provides necessary visual data.
  * @param role The role for which the reminder should be generated
  * @return {function(*): {image: string|string[]|string|*, role: *, name: *, imageAlt: string|*}}
  */
-const mapReminder = ({ id, image, imageAlt }) => name => ({
+const mapReminder = ({ id, image, imageAlt, trustedImage }) => name => ({
   role: id,
   image,
   imageAlt,
+  trustedImage,
   name
 });
 
 export default {
   components: { Modal },
   props: ["playerIndex"],
+  data() {
+    return { cachedReminderImages: {} };
+  },
   computed: {
     availableReminders() {
       let reminders = [];
@@ -90,7 +87,42 @@ export default {
     ...mapState(["modals", "grimoire"]),
     ...mapState("players", ["players"])
   },
+  watch: {
+    availableReminders: "loadReminderImages"
+  },
+  mounted() {
+    this.loadReminderImages();
+  },
+  beforeDestroy() {
+    Object.values(this.cachedReminderImages).forEach(url => {
+      if (typeof url === "string") URL.revokeObjectURL(url);
+    });
+  },
   methods: {
+    getReminderIconUrl(reminder) {
+      const key = reminder.role + (reminder.name ? "_" + reminder.name : "");
+      if (this.cachedReminderImages[key]) return this.cachedReminderImages[key];
+      if (reminder.image && (reminder.trustedImage || (reminder.imageAlt && this.grimoire.isImageOptIn))) {
+        return reminder.image;
+      }
+      return require("../../assets/icons/" + (reminder.imageAlt || reminder.role) + ".png");
+    },
+    async loadReminderImages() {
+      for (const reminder of this.availableReminders) {
+        if (!reminder.image) continue;
+        const useRemote = reminder.trustedImage || (reminder.imageAlt && this.grimoire.isImageOptIn);
+        if (!useRemote) continue;
+        const key = reminder.role + (reminder.name ? "_" + reminder.name : "");
+        if (this.cachedReminderImages[key]) continue;
+        const cached = await getCachedImage(key);
+        if (cached) {
+          this.$set(this.cachedReminderImages, key, cached);
+        } else {
+          const url = await cacheImage(key, reminder.image);
+          this.$set(this.cachedReminderImages, key, url);
+        }
+      }
+    },
     addReminder(reminder) {
       const player = this.$store.state.players.players[this.playerIndex];
       let value;

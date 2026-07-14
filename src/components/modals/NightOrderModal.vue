@@ -40,15 +40,7 @@
           <span
             class="icon"
             v-if="role.id"
-            :style="{
-              backgroundImage: `url(${
-                role.image && grimoire.isImageOptIn
-                  ? role.image
-                  : require('../../assets/icons/' +
-                      (role.imageAlt || role.id) +
-                      '.png')
-              })`
-            }"
+            :style="{ backgroundImage: `url(${getRoleIconUrl(role)})` }"
           ></span>
           <span class="reminder" v-if="role.firstNightReminder">
             {{ role.firstNightReminder }}
@@ -65,15 +57,7 @@
           <span
             class="icon"
             v-if="role.id"
-            :style="{
-              backgroundImage: `url(${
-                role.image && grimoire.isImageOptIn
-                  ? role.image
-                  : require('../../assets/icons/' +
-                      (role.imageAlt || role.id) +
-                      '.png')
-              })`
-            }"
+            :style="{ backgroundImage: `url(${getRoleIconUrl(role)})` }"
           ></span>
           <span class="name">
             {{ role.name }}
@@ -101,10 +85,14 @@
 <script>
 import Modal from "./Modal";
 import { mapMutations, mapState } from "vuex";
+import { getCachedImage, cacheImage } from "../../utils/imageCache";
 
 export default {
   components: {
     Modal
+  },
+  data() {
+    return { cachedRoleImages: {} };
   },
   computed: {
     rolesFirstNight: function() {
@@ -167,7 +155,41 @@ export default {
     ...mapState(["roles", "modals", "edition", "grimoire"]),
     ...mapState("players", ["players", "fabled"])
   },
+  watch: {
+    rolesFirstNight: "loadRoleImages",
+    rolesOtherNight: "loadRoleImages"
+  },
+  mounted() {
+    this.loadRoleImages();
+  },
+  beforeDestroy() {
+    Object.values(this.cachedRoleImages).forEach(url => {
+      if (typeof url === "string") URL.revokeObjectURL(url);
+    });
+  },
   methods: {
+    getRoleIconUrl(role) {
+      if (this.cachedRoleImages[role.id]) return this.cachedRoleImages[role.id];
+      if (role.image && (role.trustedImage || (!role.isCustom && this.grimoire.isImageOptIn))) {
+        return role.image;
+      }
+      return require("../../assets/icons/" + (role.imageAlt || role.id) + ".png");
+    },
+    async loadRoleImages() {
+      const allRoles = [...this.rolesFirstNight, ...this.rolesOtherNight];
+      for (const role of allRoles) {
+        if (!role.image || !role.id) continue;
+        const useRemote = role.trustedImage || (!role.isCustom && this.grimoire.isImageOptIn);
+        if (!useRemote || this.cachedRoleImages[role.id]) continue;
+        const cached = await getCachedImage(role.id);
+        if (cached) {
+          this.$set(this.cachedRoleImages, role.id, cached);
+        } else {
+          const url = await cacheImage(role.id, role.image);
+          this.$set(this.cachedRoleImages, role.id, url);
+        }
+      }
+    },
     ...mapMutations(["toggleModal"])
   }
 };

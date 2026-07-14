@@ -176,15 +176,7 @@
       >
         <span
           class="icon"
-          :style="{
-            backgroundImage: `url(${
-              reminder.image && grimoire.isImageOptIn
-                ? reminder.image
-                : require('../assets/icons/' +
-                    (reminder.imageAlt || reminder.role) +
-                    '.png')
-            })`
-          }"
+          :style="{ backgroundImage: `url(${getReminderIconUrl(reminder)})` }"
         ></span>
         <span class="text">{{ reminder.name }}</span>
       </div>
@@ -202,6 +194,7 @@
 <script>
 import Token from "./Token";
 import { mapGetters, mapState } from "vuex";
+import { getCachedImage, cacheImage } from "../utils/imageCache";
 
 export default {
   components: {
@@ -212,6 +205,12 @@ export default {
       type: Object,
       required: true
     }
+  },
+  data() {
+    return {
+      isMenuOpen: false,
+      cachedReminderImages: {}
+    };
   },
   computed: {
     ...mapState("players", ["players"]),
@@ -238,10 +237,11 @@ export default {
       return { width: 12 + this.grimoire.zoom + unit };
     }
   },
-  data() {
-    return {
-      isMenuOpen: false
-    };
+  watch: {
+    "player.reminders": {
+      handler() { this.loadReminderImages(); },
+      deep: true
+    }
   },
   mounted() {
     this._clickOutsideHandler = (event) => {
@@ -250,11 +250,40 @@ export default {
       }
     };
     document.addEventListener("click", this._clickOutsideHandler);
+    this.loadReminderImages();
   },
   beforeDestroy() {
     document.removeEventListener("click", this._clickOutsideHandler);
+    Object.values(this.cachedReminderImages).forEach(url => {
+      if (typeof url === "string") URL.revokeObjectURL(url);
+    });
   },
   methods: {
+    getReminderIconUrl(reminder) {
+      const key = (reminder.imageAlt ? "r_" : "f_") + reminder.role;
+      if (this.cachedReminderImages[key]) return this.cachedReminderImages[key];
+      if (reminder.image && (reminder.trustedImage || (reminder.imageAlt && this.grimoire.isImageOptIn))) {
+        return reminder.image;
+      }
+      return require("../assets/icons/" + (reminder.imageAlt || reminder.role) + ".png");
+    },
+    async loadReminderImages() {
+      if (!this.player.reminders) return;
+      for (const reminder of this.player.reminders) {
+        if (!reminder.image) continue;
+        const useRemote = reminder.trustedImage || (reminder.imageAlt && this.grimoire.isImageOptIn);
+        if (!useRemote) continue;
+        const key = (reminder.imageAlt ? "r_" : "f_") + reminder.role;
+        if (this.cachedReminderImages[key]) continue;
+        const cached = await getCachedImage(key);
+        if (cached) {
+          this.$set(this.cachedReminderImages, key, cached);
+        } else {
+          const url = await cacheImage(key, reminder.image);
+          this.$set(this.cachedReminderImages, key, url);
+        }
+      }
+    },
     toggleStatus() {
       if (this.grimoire.isPublic) {
         if (!this.player.isDead) {

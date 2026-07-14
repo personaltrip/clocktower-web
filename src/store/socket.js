@@ -517,7 +517,7 @@ class LiveSession {
     if (!this._isSpectator) return;
     this._store.commit("setEdition", edition);
     if (roles) {
-      this._store.commit("setCustomRoles", roles);
+      this._store.commit("setCustomRoles", { roles, trusted: true });
       if (this._store.state.roles.size !== roles.length) {
         const missing = [];
         roles.forEach(({ id }) => {

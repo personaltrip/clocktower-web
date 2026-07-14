@@ -38,7 +38,12 @@ module.exports = store => {
     store.commit("toggleNight");
   }
   if (localStorage.roles !== undefined) {
-    store.commit("setCustomRoles", JSON.parse(localStorage.roles));
+    const savedRoles = JSON.parse(localStorage.roles);
+    // 恢复时始终视为已信任（用户主动加载过该剧本），同时兼容旧格式（纯数组）
+    const payload = Array.isArray(savedRoles)
+      ? { roles: savedRoles, trusted: true }
+      : { ...savedRoles, trusted: true };
+    store.commit("setCustomRoles", payload);
     store.commit("setEdition", { id: "custom" });
   }
   if (localStorage.edition !== undefined) {
@@ -139,13 +144,15 @@ module.exports = store => {
           localStorage.removeItem("roles");
         }
         break;
-      case "setCustomRoles":
-        if (!payload.length) {
+      case "setCustomRoles": {
+        const savedRoles = Array.isArray(payload) ? payload : (payload && payload.roles) || [];
+        if (!savedRoles.length) {
           localStorage.removeItem("roles");
         } else {
-          localStorage.setItem("roles", JSON.stringify(payload));
+          localStorage.setItem("roles", JSON.stringify({ roles: savedRoles, trusted: true }));
         }
         break;
+      }
       case "players/setBluff":
         localStorage.setItem(
           "bluffs",

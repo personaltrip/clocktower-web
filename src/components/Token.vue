@@ -3,13 +3,7 @@
     <span
       class="icon"
       v-if="role.id && !hideRole"
-      :style="{
-        backgroundImage: `url(${
-          role.image && grimoire.isImageOptIn
-            ? role.image
-            : require('../assets/icons/' + (role.imageAlt || role.id) + '.png')
-        })`
-      }"
+      :style="{ backgroundImage: `url(${iconUrl})` }"
     ></span>
     <span
       class="leaf-left"
@@ -48,6 +42,7 @@
 
 <script>
 import { mapState } from "vuex";
+import { getCachedImage, cacheImage } from "../utils/imageCache";
 
 export default {
   name: "Token",
@@ -61,6 +56,9 @@ export default {
       default: false
     }
   },
+  data() {
+    return { cachedImageUrl: null };
+  },
   computed: {
     reminderLeaves: function() {
       return (
@@ -68,7 +66,28 @@ export default {
         (this.role.remindersGlobal || []).length
       );
     },
+    useRemoteImage() {
+      return !!(
+        this.role.image &&
+        (this.role.trustedImage ||
+          (!this.role.isCustom && this.grimoire.isImageOptIn))
+      );
+    },
+    iconUrl() {
+      if (this.cachedImageUrl) return this.cachedImageUrl;
+      if (this.useRemoteImage) return this.role.image;
+      return require("../assets/icons/" + (this.role.imageAlt || this.role.id) + ".png");
+    },
     ...mapState(["grimoire"])
+  },
+  watch: {
+    role: "loadRemoteImage"
+  },
+  mounted() {
+    this.loadRemoteImage();
+  },
+  beforeDestroy() {
+    if (this.cachedImageUrl) URL.revokeObjectURL(this.cachedImageUrl);
   },
   filters: {
     nameToFontSize: name => (name && name.length > 10 ? "90%" : "110%")
@@ -76,6 +95,20 @@ export default {
   methods: {
     setRole() {
       this.$emit("set-role");
+    },
+    async loadRemoteImage() {
+      if (this.cachedImageUrl) URL.revokeObjectURL(this.cachedImageUrl);
+      this.cachedImageUrl = null;
+      if (!this.useRemoteImage) return;
+      const cached = await getCachedImage(this.role.id);
+      if (cached) {
+        if (this._isDestroyed) return;
+        this.cachedImageUrl = cached;
+      } else {
+        const url = await cacheImage(this.role.id, this.role.image);
+        if (this._isDestroyed) return;
+        this.cachedImageUrl = url;
+      }
     }
   }
 };

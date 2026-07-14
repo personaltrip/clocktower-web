@@ -53,7 +53,9 @@ const editionJSONbyId = new Map(
   editionJSON.map(edition => [edition.id, edition])
 );
 const rolesJSONbyId = new Map(rolesJSON.map(role => [role.id, role]));
-const fabled = new Map(fabledJSON.map(role => [role.id, role]));
+const fabled = new Map(
+  fabledJSON.map(role => [role.id, { ...role, trustedImage: true }])
+);
 
 // jinxes
 let jinxes = {};
@@ -185,9 +187,12 @@ export default new Vuex.Store({
     /**
      * Store custom roles
      * @param state
-     * @param roles Array of role IDs or full role definitions
+     * @param payload Array of role IDs/definitions, or { roles, trusted } object
      */
-    setCustomRoles(state, roles) {
+    setCustomRoles(state, payload) {
+      // 支持新旧两种调用方式：直接传数组，或传 { roles, trusted }
+      const roles = Array.isArray(payload) ? payload : payload.roles;
+      const trusted = !Array.isArray(payload) && payload.trusted === true;
       const processedRoles = roles
         // replace numerical role object keys with matching key names
         .map(role => {
@@ -213,17 +218,20 @@ export default new Vuex.Store({
         // 对于非标准 id 的角色，通过名称+阵营匹配标准角色获取完整定义
         .map(role => {
           const byId = rolesJSONbyId.get(role.id) || state.roles.get(role.id);
-          if (byId) return byId;
+          if (byId) return { ...byId };
           // 按名称+阵营查找标准角色
           const byName = [...rolesJSONbyId.values()].find(
             r => r.name === role.name && r.team === role.team
           );
-          if (byName) return byName;
-          return Object.assign({}, customRole, role);
+          if (byName) return { ...byName };
+          // trusted=true 时（内置剧本/WebSocket），所有角色（含完全自定义）均标记可信
+          const merged = Object.assign({}, customRole, role);
+          if (trusted) merged.trustedImage = true;
+          return merged;
         })
         // default empty icons and placeholders, clean up firstNight / otherNight
         .map(role => {
-          if (rolesJSONbyId.get(role.id)) return role;
+          if (!role.isCustom) return role;
           role.imageAlt = // map team to generic icon
             {
               townsfolk: "good",
@@ -247,9 +255,12 @@ export default new Vuex.Store({
           .map(role => [role.id, role])
       );
       // update Fabled to include custom Fabled from this script
+      // fabled 角色没有本地图标，必须始终使用远程URL（trustedImage: true）
       state.fabled = new Map([
-        ...processedRoles.filter(r => r.team === "fabled").map(r => [r.id, r]),
-        ...fabledJSON.map(role => [role.id, role])
+        ...processedRoles
+          .filter(r => r.team === "fabled")
+          .map(r => [r.id, { ...r, trustedImage: true }]),
+        ...fabledJSON.map(role => [role.id, { ...role, trustedImage: true }])
       ]);
       // update extraTravelers map to only show travelers not in this script
       state.otherTravelers = new Map(

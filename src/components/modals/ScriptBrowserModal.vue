@@ -204,7 +204,7 @@ export default {
       if (metaIndex > -1) {
         meta = roles.splice(metaIndex, 1).pop();
       }
-      this.$store.commit("setCustomRoles", roles);
+      this.$store.commit("setCustomRoles", { roles, trusted: true });
       this.$store.commit(
         "setEdition",
         Object.assign({}, meta, { id: "custom" })
