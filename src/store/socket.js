@@ -688,6 +688,7 @@ class LiveSession {
   _handlePing([playerIdOrCount = 0, latency] = []) {
     const now = new Date().getTime();
     if (!this._isSpectator) {
+      console.log("[PING] _handlePing: from=", playerIdOrCount, "players=", Object.keys(this._players), "seatedIds=", this._store.state.players.players.map(p => p.id));
       // remove players that haven't sent a ping in twice the timespan
       for (let player in this._players) {
         if (now - this._players[player] > this._pingInterval * 8) {
@@ -698,6 +699,7 @@ class LiveSession {
       // remove claimed seats from players that are no longer connected
       this._store.state.players.players.forEach(player => {
         if (player.id && !this._players[player.id]) {
+          console.log("[PING] clearing seat: player=", player.name, "id=", player.id, "(not in _players)");
           this._store.commit("players/update", {
             player,
             property: "id",
