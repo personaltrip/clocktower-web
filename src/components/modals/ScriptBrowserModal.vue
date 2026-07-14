@@ -39,20 +39,17 @@
       <div class="results-info">
         共 {{ filteredScripts.length }} 个剧本
       </div>
-      <div class="script-list">
+      <div class="script-grid">
         <div
           v-for="script in pagedScripts"
           :key="script.file"
-          class="script-item"
+          class="script-card"
           @click="loadScript(script)"
         >
-          <div class="item-info">
-            <span class="item-name">{{ script.name }}</span>
-            <span class="item-author" v-if="script.author">{{ script.author }}</span>
-          </div>
-          <div class="item-meta">
-            <span class="item-category">{{ script.category }}</span>
-            <span class="item-players">{{ script.players }}人</span>
+          <div class="card-name">{{ script.name }}</div>
+          <div class="card-meta">
+            <span class="card-author" v-if="script.author">{{ script.author }}</span>
+            <span class="card-players">{{ script.players }}人</span>
           </div>
         </div>
       </div>
@@ -297,18 +294,28 @@ export default {
   padding: 4px 0 6px;
 }
 
-.script-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-bottom: 8px;
+.script-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding-bottom: 10px;
 }
 
-.script-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
+@media (max-width: 768px) {
+  .script-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .script-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+}
+
+.script-card {
+  padding: 10px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
@@ -320,48 +327,39 @@ export default {
   }
 }
 
-.item-info {
+.card-name {
+  font-weight: bold;
+  font-size: 85%;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-meta {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-author {
+  font-size: 70%;
+  color: #b0a080;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   flex: 1;
 }
 
-.item-name {
-  font-weight: bold;
-  font-size: 90%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-author {
+.card-players {
   font-size: 75%;
-  color: #b0a080;
-  flex-shrink: 0;
-}
-
-.item-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  margin-left: 10px;
-}
-
-.item-category {
-  font-size: 70%;
-  color: #777;
-}
-
-.item-players {
-  font-size: 80%;
   color: #aaa;
   background: rgba(255, 255, 255, 0.08);
-  padding: 1px 8px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pagination {
@@ -369,7 +367,11 @@ export default {
   justify-content: center;
   align-items: center;
   gap: 4px;
-  padding: 8px 0;
+  padding: 10px 0;
+  position: sticky;
+  bottom: 0;
+  background: rgba(20, 20, 30, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .page-btn {
