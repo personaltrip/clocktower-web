@@ -350,11 +350,8 @@ wss.on("connection", function connection(ws, req) {
       default:
         // all other messages
         console.log(
-          new Date(),
-          wss.clients.size,
-          ws.channel,
-          ws.playerId,
-          data
+          `[SERVER] routing ${messageType} from ${ws.playerId} in ${ws.channel} to ${channels[ws.channel].length - 1} other client(s):`,
+          data.toString().substring(0, 120)
         );
         channels[ws.channel].forEach(function each(client) {
           if (client !== ws && client.readyState === WebSocket.OPEN) {
