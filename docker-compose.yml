@@ -1,0 +1,11 @@
+services:
+  web:
+    build: .
+    container_name: clocktower-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    # 可选：取消下面的注释，挂载剧本目录后可热更新剧本，无需重新构建镜像
+    # volumes:
+    #   - ./public/scripts:/usr/share/nginx/html/scripts:ro
+    #   - ./public/scripts-index.json:/usr/share/nginx/html/scripts-index.json:ro
