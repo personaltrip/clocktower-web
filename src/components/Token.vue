@@ -78,16 +78,8 @@ export default {
      */
     proxiedImageUrl() {
       if (!this.role.image) return null;
-      // 只对特定外部域名使用代理
-      const externalDomains = [
-        "bloodstar.xyz",
-        "www.bloodstar.xyz",
-        "oss.gstonegames.com"
-      ];
-      const isExternal = externalDomains.some(domain =>
-        this.role.image.includes(domain)
-      );
-      if (isExternal) {
+      // 所有 http/https 外部图片都走代理
+      if (/^https?:\/\//.test(this.role.image)) {
         return `/image-proxy/?url=${encodeURIComponent(this.role.image)}`;
       }
       return this.role.image;
