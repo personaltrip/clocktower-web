@@ -238,6 +238,9 @@ export default new Vuex.Store({
             if (trusted) {
               const merged = { ...byName, ...role };
               if (merged.image) merged.trustedImage = true;
+              // 用标准角色的 id 作为 imageAlt，确保能找到正确的本地图标
+              // （剧本的 id 可能是 "1_82" 等非标准格式，本地图标按标准 id 命名）
+              if (merged.id !== byName.id) merged.imageAlt = byName.id;
               return merged;
             }
             return { ...byName };
