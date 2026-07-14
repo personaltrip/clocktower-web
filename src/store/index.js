@@ -221,7 +221,7 @@ export default new Vuex.Store({
           if (byId) {
             // trusted 模式下（内置剧本/WebSocket），保留剧本中的自定义属性（如 image、reminders 等）
             if (trusted) {
-              const merged = { ...byId, ...role };
+              const merged = { ...byId, ...role, id: byId.id };
               if (merged.image) merged.trustedImage = true;
               return merged;
             }
@@ -234,7 +234,7 @@ export default new Vuex.Store({
           if (byName) {
             // trusted 模式下（内置剧本/WebSocket），保留剧本中的自定义属性（如 image、reminders 等）
             if (trusted) {
-              const merged = { ...byName, ...role };
+              const merged = { ...byName, ...role, id: byName.id };
               if (merged.image) merged.trustedImage = true;
               return merged;
             }
